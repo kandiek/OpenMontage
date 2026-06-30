@@ -29,6 +29,7 @@ DEMO_DESCRIPTIONS = {
     "world-in-numbers": "Global scale story with titles, stats, and charts",
     "code-to-screen": "Developer workflow explainer with comparison and KPI cards",
     "focusflow-pitch": "Startup-style pitch built only from Remotion components",
+    "ai-video-factory": "Vertical Remotion/OpenMontage workflow demo",
 }
 
 
@@ -65,16 +66,40 @@ def ensure_demo_environment() -> str:
     return npx_cmd
 
 
-def validate_props_file(path: Path) -> None:
+def load_props_file(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
+
+    if not isinstance(payload, dict):
+        raise SystemExit(f"Error: {path} must contain a JSON object.")
+
+    return payload
+
+
+def get_composition_name(payload: dict, path: Path) -> str:
+    composition = payload.get("composition", "Explainer")
+    if not isinstance(composition, str) or not composition.strip():
+        raise SystemExit(f"Error: {path} composition must be a non-empty string.")
+
+    return composition.strip()
+
+
+def validate_props_file(path: Path) -> dict:
+    payload = load_props_file(path)
+
+    if payload.get("composition"):
+        get_composition_name(payload, path)
+        return payload
 
     if not isinstance(payload.get("cuts"), list) or not payload["cuts"]:
         raise SystemExit(f"Error: {path} must define at least one cut.")
 
+    return payload
+
 
 def render_demo(name: str, props_path: Path, npx_cmd: str) -> None:
-    validate_props_file(props_path)
+    props = validate_props_file(props_path)
+    composition = get_composition_name(props, props_path)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"{name}.mp4"
 
@@ -90,7 +115,7 @@ def render_demo(name: str, props_path: Path, npx_cmd: str) -> None:
             "remotion",
             "render",
             "src/index.tsx",
-            "Explainer",
+            composition,
             str(output_path),
             "--props",
             str(props_path),
