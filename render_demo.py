@@ -29,6 +29,7 @@ DEMO_DESCRIPTIONS = {
     "world-in-numbers": "Global scale story with titles, stats, and charts",
     "code-to-screen": "Developer workflow explainer with comparison and KPI cards",
     "focusflow-pitch": "Startup-style pitch built only from Remotion components",
+    "xiaohei-parable-talents": "45-second Xiaohei editorial sketchbook explainer",
 }
 
 
@@ -65,16 +66,23 @@ def ensure_demo_environment() -> str:
     return npx_cmd
 
 
-def validate_props_file(path: Path) -> None:
+def validate_props_file(path: Path, composition_id: str = "Explainer") -> None:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
 
-    if not isinstance(payload.get("cuts"), list) or not payload["cuts"]:
+    if composition_id == "Explainer" and (not isinstance(payload.get("cuts"), list) or not payload["cuts"]):
         raise SystemExit(f"Error: {path} must define at least one cut.")
 
 
+def composition_for_demo(name: str) -> str:
+    if name == "xiaohei-parable-talents":
+        return "XiaoheiParableTalents"
+    return "Explainer"
+
+
 def render_demo(name: str, props_path: Path, npx_cmd: str) -> None:
-    validate_props_file(props_path)
+    composition_id = composition_for_demo(name)
+    validate_props_file(props_path, composition_id)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"{name}.mp4"
 
@@ -90,7 +98,7 @@ def render_demo(name: str, props_path: Path, npx_cmd: str) -> None:
             "remotion",
             "render",
             "src/index.tsx",
-            "Explainer",
+            composition_id,
             str(output_path),
             "--props",
             str(props_path),

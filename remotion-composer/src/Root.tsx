@@ -16,6 +16,7 @@ import { ProductReveal, ProductRevealProps } from "./components/ProductReveal";
 import { CaptionOverlay, WordCaption } from "./components/CaptionOverlay";
 import { CollageBurst, CollageBurstProps } from "./CollageBurst";
 import { LyricOverlay, LyricOverlayProps } from "./LyricOverlay";
+import { XiaoheiParableTalents } from "./components/xiaohei/XiaoheiParableTalents";
 
 // ---------------------------------------------------------------------------
 // Theme System — prevents every video from looking like dark fintech
@@ -295,6 +296,15 @@ export const Root: React.FC = () => {
           lyrics: [],
           bottomY: 0.88,
         } as LyricOverlayProps}
+      />
+      <Composition
+        id="XiaoheiParableTalents"
+        component={XiaoheiParableTalents}
+        durationInFrames={1350}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{}}
       />
       <Composition
         id="EndTag"
