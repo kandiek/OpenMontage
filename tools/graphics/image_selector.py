@@ -7,8 +7,10 @@ the tool file in tools/graphics/; no changes to this selector are needed.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+from lib.xiaohei_prompt_builder import build_xiaohei_prompt
 from tools.base_tool import BaseTool, ToolResult, ToolRuntime, ToolStability, ToolStatus, ToolTier
 
 
@@ -127,6 +129,25 @@ class ImageSelector(BaseTool):
                 "description": "Optional provenance metadata for custom workflow dependencies.",
             },
             "output_path": {"type": "string"},
+            "visual_style": {
+                "type": "string",
+                "enum": ["default", "xiaohei"],
+                "default": "default",
+                "description": "Set to 'xiaohei' to build the provider prompt with lib/xiaohei_prompt_builder.py.",
+            },
+            "xiaohei_preset": {
+                "type": "string",
+                "default": "social_video_hook",
+                "description": "Xiaohei prompt preset to use when visual_style='xiaohei'.",
+            },
+            "xiaohei_core_action": {"type": "string"},
+            "xiaohei_annotations": {"type": "array", "items": {"type": "string"}},
+            "xiaohei_context": {"type": "string"},
+            "prompt_asset_dir": {
+                "type": "string",
+                "default": "assets/xiaohei-prompts",
+                "description": "Where to save Xiaohei prompt assets when no image provider is configured.",
+            },
         },
     }
 
@@ -168,6 +189,7 @@ class ImageSelector(BaseTool):
         from lib.scoring import rank_providers
 
         logger = logging.getLogger(__name__)
+        inputs = self._prepare_visual_style_inputs(inputs)
         task_context = self._prepare_task_context(inputs)
         candidates = self._filter_candidates(inputs, self._providers())
 
@@ -186,6 +208,8 @@ class ImageSelector(BaseTool):
         # Normal generation — use scored selection
         tool, score = self._select_best_tool(inputs, candidates, task_context)
         if tool is None:
+            if inputs.get("visual_style") == "xiaohei":
+                return self._save_xiaohei_prompt_asset(inputs)
             return ToolResult(success=False, error="No image provider available.")
 
         # Adapt input keys: stock tools use 'query' while generators use 'prompt'
@@ -198,6 +222,12 @@ class ImageSelector(BaseTool):
         # Strip selector-only keys that downstream tools don't understand
         adapted.pop("preferred_provider", None)
         adapted.pop("allowed_providers", None)
+        adapted.pop("visual_style", None)
+        adapted.pop("xiaohei_preset", None)
+        adapted.pop("xiaohei_core_action", None)
+        adapted.pop("xiaohei_annotations", None)
+        adapted.pop("xiaohei_context", None)
+        adapted.pop("prompt_asset_dir", None)
 
         # Pass through generation params only to tools that accept them.
         if hasattr(tool, 'input_schema'):
@@ -244,6 +274,54 @@ class ImageSelector(BaseTool):
                 if t.name != tool.name and t.get_status().value == "available"
             ]
         return result
+
+    def _prepare_visual_style_inputs(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Apply selector-level visual style prompt builders before routing."""
+        if inputs.get("visual_style") != "xiaohei":
+            return inputs
+
+        prepared = dict(inputs)
+        prepared["prompt"] = build_xiaohei_prompt(
+            concept=str(inputs.get("prompt", "")),
+            preset=str(inputs.get("xiaohei_preset") or "social_video_hook"),
+            aspect_ratio=inputs.get("aspect_ratio"),
+            core_action=inputs.get("xiaohei_core_action"),
+            chinese_annotations=inputs.get("xiaohei_annotations"),
+            context=inputs.get("xiaohei_context"),
+        )
+        prepared.setdefault(
+            "negative_prompt",
+            "cute mascot, colorful cartoon, anime, Pixar, Disney, glossy vector, "
+            "PPT infographic, shadows, gradients",
+        )
+        return prepared
+
+    def _save_xiaohei_prompt_asset(self, inputs: dict[str, Any]) -> ToolResult:
+        """Persist a Xiaohei prompt asset instead of faking an image file."""
+        import re
+
+        output_dir = Path(str(inputs.get("prompt_asset_dir") or "assets/xiaohei-prompts"))
+        output_dir.mkdir(parents=True, exist_ok=True)
+        concept = str(inputs.get("xiaohei_context") or inputs.get("prompt") or "xiaohei-prompt")
+        slug = re.sub(r"[^a-zA-Z0-9]+", "-", concept.lower()).strip("-")[:60] or "xiaohei-prompt"
+        path = output_dir / f"{slug}.txt"
+        counter = 2
+        while path.exists():
+            path = output_dir / f"{slug}-{counter}.txt"
+            counter += 1
+        path.write_text(str(inputs["prompt"]) + "\n", encoding="utf-8")
+        return ToolResult(
+            success=True,
+            data={
+                "prompt": inputs["prompt"],
+                "prompt_asset_path": str(path),
+                "selected_provider": "prompt_asset",
+                "selected_tool": "image_selector",
+                "selection_reason": "No configured image-generation provider; saved Xiaohei prompt asset only.",
+                "generated_image": False,
+            },
+            artifacts=[str(path)],
+        )
 
     def _select_best_tool(
         self,
