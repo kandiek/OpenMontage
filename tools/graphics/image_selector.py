@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from lib.xiaohei_manual_image import validate_xiaohei_image_path
 from lib.xiaohei_prompt_builder import build_xiaohei_prompt
 from tools.base_tool import BaseTool, ToolResult, ToolRuntime, ToolStability, ToolStatus, ToolTier
 
@@ -148,6 +149,13 @@ class ImageSelector(BaseTool):
                 "default": "assets/xiaohei-prompts",
                 "description": "Where to save Xiaohei prompt assets when no image provider is configured.",
             },
+            "xiaohei_image": {
+                "type": "string",
+                "description": (
+                    "Manual Xiaohei image path from assets/xiaohei-images/. "
+                    "Validated and returned without calling an image-generation provider."
+                ),
+            },
         },
     }
 
@@ -190,6 +198,8 @@ class ImageSelector(BaseTool):
 
         logger = logging.getLogger(__name__)
         inputs = self._prepare_visual_style_inputs(inputs)
+        if inputs.get("xiaohei_image"):
+            return self._use_manual_xiaohei_image(inputs)
         task_context = self._prepare_task_context(inputs)
         candidates = self._filter_candidates(inputs, self._providers())
 
@@ -228,6 +238,7 @@ class ImageSelector(BaseTool):
         adapted.pop("xiaohei_annotations", None)
         adapted.pop("xiaohei_context", None)
         adapted.pop("prompt_asset_dir", None)
+        adapted.pop("xiaohei_image", None)
 
         # Pass through generation params only to tools that accept them.
         if hasattr(tool, 'input_schema'):
@@ -321,6 +332,28 @@ class ImageSelector(BaseTool):
                 "generated_image": False,
             },
             artifacts=[str(path)],
+        )
+
+    def _use_manual_xiaohei_image(self, inputs: dict[str, Any]) -> ToolResult:
+        """Return a validated manual Xiaohei image without generating anything."""
+
+        try:
+            image_path = validate_xiaohei_image_path(str(inputs["xiaohei_image"]))
+        except (FileNotFoundError, ValueError) as exc:
+            return ToolResult(success=False, error=str(exc))
+        return ToolResult(
+            success=True,
+            data={
+                "image_path": str(image_path),
+                "selected_provider": "manual",
+                "selected_tool": "image_selector",
+                "selection_reason": (
+                    "Using manually supplied Xiaohei image; no image-generation provider was called."
+                ),
+                "generated_image": False,
+                "manual_image": True,
+            },
+            artifacts=[str(image_path)],
         )
 
     def _select_best_tool(

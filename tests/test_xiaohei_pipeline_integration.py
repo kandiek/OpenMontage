@@ -65,3 +65,82 @@ def test_image_selector_saves_xiaohei_prompt_asset_when_no_provider(monkeypatch,
     text = path.read_text(encoding="utf-8")
     assert "9:16 Ian Xiaohei illustration prompt" in text
     assert "Do not use cute mascot style" in text
+
+
+def test_image_selector_accepts_valid_manual_xiaohei_image(monkeypatch, tmp_path):
+    selector = ImageSelector()
+    monkeypatch.setattr(selector, "_providers", lambda: [])
+    image_path = tmp_path / "manual-xiaohei.png"
+    image_path.write_bytes(b"not a placeholder image fixture; validation only checks handoff path")
+
+    result = selector.execute({
+        "prompt": "手动小黑图",
+        "visual_style": "xiaohei",
+        "xiaohei_image": str(image_path),
+    })
+
+    assert result.success
+    assert result.data["image_path"] == str(image_path)
+    assert result.data["selected_provider"] == "manual"
+    assert result.data["manual_image"] is True
+    assert result.data["generated_image"] is False
+
+
+def test_image_selector_fails_missing_manual_xiaohei_image(monkeypatch, tmp_path):
+    selector = ImageSelector()
+    monkeypatch.setattr(selector, "_providers", lambda: [])
+
+    result = selector.execute({
+        "prompt": "手动小黑图",
+        "visual_style": "xiaohei",
+        "xiaohei_image": str(tmp_path / "missing.png"),
+    })
+
+    assert not result.success
+    assert "Xiaohei image not found" in result.error
+    assert "assets/xiaohei-images" in result.error
+
+
+def test_image_selector_fails_unsupported_manual_xiaohei_extension(monkeypatch, tmp_path):
+    selector = ImageSelector()
+    monkeypatch.setattr(selector, "_providers", lambda: [])
+    image_path = tmp_path / "manual-xiaohei.gif"
+    image_path.write_bytes(b"gif")
+
+    result = selector.execute({
+        "prompt": "手动小黑图",
+        "visual_style": "xiaohei",
+        "xiaohei_image": str(image_path),
+    })
+
+    assert not result.success
+    assert "Unsupported Xiaohei image extension" in result.error
+    assert ".png" in result.error
+
+
+def test_manual_xiaohei_image_does_not_call_provider_or_fake_generation(monkeypatch, tmp_path):
+    selector = ImageSelector()
+    image_path = tmp_path / "manual-xiaohei.webp"
+    image_path.write_bytes(b"manual fixture")
+
+    class ExplodingProvider:
+        name = "must_not_be_called"
+        provider = "fake"
+
+        def get_status(self):
+            return ToolStatus.AVAILABLE
+
+        def execute(self, inputs):  # pragma: no cover - should never run
+            raise AssertionError("manual Xiaohei image path should not call image providers")
+
+    monkeypatch.setattr(selector, "_providers", lambda: [ExplodingProvider()])
+
+    result = selector.execute({
+        "prompt": "手动小黑图",
+        "visual_style": "xiaohei",
+        "xiaohei_image": str(image_path),
+    })
+
+    assert result.success
+    assert result.data["generated_image"] is False
+    assert "prompt_asset_path" not in result.data
