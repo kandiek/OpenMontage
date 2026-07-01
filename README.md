@@ -231,6 +231,17 @@ If you want the second one, prompt for a **documentary montage**, **tone poem**,
 
 ---
 
+
+### Manual Xiaohei images (no image API key required)
+
+OpenMontage can keep control of the video pipeline while you create Xiaohei illustrations manually. Generate a locked prompt into `assets/xiaohei-prompts/`, paste it into ChatGPT Images yourself, save the downloaded PNG/WebP/JPG/JPEG into `assets/xiaohei-images/`, then pass that file back to OpenMontage/Remotion with `--xiaohei-image` or the `xiaohei_image` tool input. This does not call any image-generation API and does not require `OPENAI_API_KEY`. See [`docs/xiaohei-manual-image-workflow.md`](docs/xiaohei-manual-image-workflow.md) for a full Topic → prompt → ChatGPT Images → saved image → Remotion/OpenMontage input example.
+
+```bash
+python scripts/xiaohei_prompt.py "短视频开头为什么要反常识" --preset social_video_hook --aspect-ratio 9:16
+# Copy the generated prompt into ChatGPT Images, download the image, then save it locally:
+python scripts/xiaohei_prompt.py --xiaohei-image assets/xiaohei-images/counterintuitive-hook.png
+```
+
 ## Try These Prompts
 
 Copy any of these into your AI coding assistant after setup. Each one runs a full production pipeline.
