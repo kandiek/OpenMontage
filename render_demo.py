@@ -29,6 +29,7 @@ DEMO_DESCRIPTIONS = {
     "world-in-numbers": "Global scale story with titles, stats, and charts",
     "code-to-screen": "Developer workflow explainer with comparison and KPI cards",
     "focusflow-pitch": "Startup-style pitch built only from Remotion components",
+    "xiaohei-parable-talents": "Vertical Xiaohei-style explainer of the Parable of the Talents",
 }
 
 
@@ -65,16 +66,25 @@ def ensure_demo_environment() -> str:
     return npx_cmd
 
 
-def validate_props_file(path: Path) -> None:
+def load_and_validate_props_file(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
+
+    if not isinstance(payload, dict):
+        raise SystemExit(f"Error: {path} must define a JSON object.")
+
+    if payload.get("composition"):
+        return payload
 
     if not isinstance(payload.get("cuts"), list) or not payload["cuts"]:
         raise SystemExit(f"Error: {path} must define at least one cut.")
 
+    return payload
+
 
 def render_demo(name: str, props_path: Path, npx_cmd: str) -> None:
-    validate_props_file(props_path)
+    props = load_and_validate_props_file(props_path)
+    composition = props.get("composition", "Explainer")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"{name}.mp4"
 
@@ -90,7 +100,7 @@ def render_demo(name: str, props_path: Path, npx_cmd: str) -> None:
             "remotion",
             "render",
             "src/index.tsx",
-            "Explainer",
+            composition,
             str(output_path),
             "--props",
             str(props_path),
