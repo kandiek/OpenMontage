@@ -1,0 +1,13 @@
+{
+  "topic": "is-sweden-expensive-compared-with-europe",
+  "title": "Is Sweden expensive compared with Europe?",
+  "ready_data": "data/ready/eurostat/is-sweden-expensive-compared-with-europe.json",
+  "chart": {
+    "type": "bar_chart",
+    "x": "country",
+    "y": "value",
+    "unit_label": "EU27=100 price level index"
+  },
+  "default_countries": ["SWE", "DNK", "DEU", "POL", "ROU"],
+  "posting_angle": "Rank Sweden against a small Europe comparison set using saved Eurostat JSON."
+}
