@@ -699,3 +699,34 @@ make test
 If this project looks useful to you, a ⭐ would really mean a lot — it helps others discover it too.
 
 If you'd like to go further, [sponsor the project](https://github.com/sponsors/calesthio) — OpenMontage is built nights and weekends, and your support makes that sustainable.
+
+## Posting-first Eurostat cost-of-living data workflow
+
+OpenMontage keeps data fetching separate from video rendering:
+
+1. **Codex writes fetcher code and mocked tests.** Agent work should not depend on live internet data.
+2. **Codespaces runs the fetcher manually and saves data.** Commit both `data/raw/eurostat/` and `data/ready/eurostat/` outputs after reviewing them.
+3. **Remotion renders from saved JSON.** Compositions should read `data/ready/eurostat/<topic>.json`; they should not call Eurostat live during render.
+4. **The user manually posts the final video.** Keep platform posting decisions outside the renderer.
+
+Starter topics live in `post_specs/`:
+
+- `is-sweden-expensive-compared-with-europe`
+- `sweden-vs-denmark-germany`
+- `sweden-eu-ranking`
+
+Example Codespaces command:
+
+```bash
+python scripts/fetch_eurostat_cost.py \
+  --topic is-sweden-expensive-compared-with-europe \
+  --countries SWE,DNK,DEU,POL,ROU \
+  --year latest
+```
+
+Expected outputs:
+
+- timestamped raw Eurostat API response in `data/raw/eurostat/`
+- chart-ready JSON at `data/ready/eurostat/is-sweden-expensive-compared-with-europe.json`
+
+If the live public Eurostat request fails, the script writes clearly marked sample fallback data with `"is_sample": true`. Sample fallback data is only for layout/testing and must not be presented as live Eurostat data.

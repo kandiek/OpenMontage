@@ -1,0 +1,10 @@
+{
+  "topic": "sweden-eu-ranking",
+  "title": "Where Sweden ranks in the EU for prices",
+  "ready_data": "data/ready/eurostat/sweden-eu-ranking.json",
+  "chart": "ranking_bar_chart",
+  "hook": "Rank Sweden against the EU to make the price gap instantly visible.",
+  "countries": ["SWE", "DNK", "DEU", "POL", "ROU", "FRA", "ITA", "ESP", "NLD", "FIN"],
+  "year": "latest",
+  "posting_note": "Use saved JSON only; do not fetch live data during Remotion rendering."
+}
