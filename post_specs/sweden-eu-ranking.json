@@ -1,0 +1,14 @@
+{
+  "topic": "sweden-eu-ranking",
+  "title": "Where Sweden ranks in Europe for prices",
+  "ready_data": "data/ready/eurostat/sweden-eu-ranking.json",
+  "chart": {
+    "type": "bar_chart",
+    "x": "country",
+    "y": "value",
+    "unit_label": "EU27=100 price level index",
+    "sort": "descending"
+  },
+  "default_countries": ["SWE", "DNK", "DEU", "FIN", "FRA", "ITA", "ESP", "POL", "ROU"],
+  "posting_angle": "Turn a saved country ranking into a short Remotion data visualization."
+}

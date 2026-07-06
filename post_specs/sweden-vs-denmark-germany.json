@@ -1,0 +1,13 @@
+{
+  "topic": "sweden-vs-denmark-germany",
+  "title": "Sweden vs Denmark vs Germany: cost of living",
+  "ready_data": "data/ready/eurostat/sweden-vs-denmark-germany.json",
+  "chart": {
+    "type": "comparison",
+    "x": "country",
+    "y": "value",
+    "unit_label": "EU27=100 price level index"
+  },
+  "default_countries": ["SWE", "DNK", "DEU"],
+  "posting_angle": "Compare Sweden with nearby Denmark and Germany for a quick social post."
+}

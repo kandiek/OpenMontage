@@ -699,3 +699,36 @@ make test
 If this project looks useful to you, a ⭐ would really mean a lot — it helps others discover it too.
 
 If you'd like to go further, [sponsor the project](https://github.com/sponsors/calesthio) — OpenMontage is built nights and weekends, and your support makes that sustainable.
+
+## Posting-first Eurostat cost-of-living data workflow
+
+OpenMontage keeps live data fetching out of the Codex agent phase:
+
+1. **Codex writes fetcher code and mocked tests.** The agent should add or update fetcher code, post specs, and tests without relying on live Eurostat access.
+2. **Codespaces runs the fetcher and saves data.** Run the script manually from Codespaces, review the JSON, and commit the saved files under `data/raw/eurostat/` and `data/ready/eurostat/`.
+3. **Remotion renders from saved JSON.** Compositions should read `data/ready/eurostat/<topic>.json` instead of calling live APIs during render.
+4. **The user manually posts the video.** OpenMontage prepares the rendered video; posting remains a manual step.
+
+Starter topics live in `post_specs/`:
+
+- `is-sweden-expensive-compared-with-europe`
+- `sweden-vs-denmark-germany`
+- `sweden-eu-ranking`
+
+Example Codespaces fetch command:
+
+```bash
+python scripts/fetch_eurostat_cost.py \
+  --topic is-sweden-expensive-compared-with-europe \
+  --countries SWE,DNK,DEU,POL,ROU \
+  --year latest
+```
+
+Expected saved output:
+
+```text
+data/raw/eurostat/
+data/ready/eurostat/is-sweden-expensive-compared-with-europe.json
+```
+
+The Eurostat fetcher uses public GET requests only and requires no API key. If live fetching fails, the script writes chart-ready fallback data only when it can mark it clearly with `is_sample: true`, `source: "SAMPLE FALLBACK - not live Eurostat data"`, and a sample warning. Do not present sample fallback data as live Eurostat data.
